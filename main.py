@@ -1,5 +1,5 @@
 from model import *
-from data_preprocessing import *
+from utils import *
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
@@ -9,8 +9,8 @@ import argparse
 import random
 
 
-NUM_EPOCHS = 1
-BATCH_SIZE = 60
+NUM_EPOCHS = 30
+BATCH_SIZE = 256
 LATENT_DIM = 292
 RANDOM_SEED = 42
 LR = 0.0001
@@ -32,7 +32,6 @@ def get_arguments():
     parser.add_argument('--lr', type=float, metavar='N', default=LR,
                         help='Learning Rate for training.')
 
-    
     return parser.parse_args()
 
 def main():

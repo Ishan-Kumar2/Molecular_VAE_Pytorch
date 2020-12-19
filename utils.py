@@ -131,7 +131,15 @@ def load_dataset(filename, split = True):
 
 
 if __name__ == '__main__':
-	a,b,c=load_dataset('/home/ishan/Desktop/Chem_AI/keras-molecules-master/data/smiles_50k.h5')
+	#a,b,c=load_dataset('/home/ishan/Desktop/Chem_AI/keras-molecules-master/data/smiles_50k.h5')
+	dat = pd.read_csv('./smiles_chembl.csv')
+	print(len(dat['SMILES']))
+
+	print(SSS)
+	
+	
+
+	print(SSSS)
 	print("Data Train",a.shape)
 	print("Data Test ",b.shape)
 	print("Charset",c.shape)
