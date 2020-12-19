@@ -8,6 +8,15 @@ from rdkit.Chem.Descriptors import MolWt
 import imblearn
 from imblearn.over_sampling import RandomOverSampler
 from sklearn.model_selection import train_test_split
+
+from matplotlib import colors
+from rdkit.Chem import Draw
+from rdkit.Chem.Draw import MolToImage
+import rdkit
+import rdkit.Chem as Chem
+from PIL import Image  
+import PIL 
+
 # check version number
 #import imblearn
 #from imblearn.over_sampling import RandomOverSampler
@@ -33,10 +42,11 @@ def build_vocab(data):
 			vocab_.add(letter)
 	
 	vocab={}
-	vocab['<PAD>']=0
+	vocab['<PAD>'] = 0
 	for i,letter in enumerate(vocab_):
 		vocab[letter]=i+1
 	inv_dict= {num: char for char, num in vocab.items()}
+	inv_dict[0] = ''
 	return vocab, inv_dict
 
 def make_one_hot(data,vocab,max_len=120):
@@ -72,14 +82,6 @@ def split_data(input,output,test_size=0.20):
 	return X_train, X_test, y_train, y_test
 
 
-
-from matplotlib import colors
-from rdkit.Chem import Draw
-from rdkit.Chem.Draw import MolToImage
-import rdkit
-import rdkit.Chem as Chem
-from PIL import Image  
-import PIL 
 def get_image(mol, atomset, name):    
 	hcolor = colors.to_rgb('green')
 	if atomset is not None:
@@ -109,7 +111,32 @@ def add_img(onehot, inv_vocab, name):
 	mol = get_mol(smiles)
 	get_image(mol, {}, name)
 
+import h5py
+def load_dataset(filename, split = True):
+    #h5f = h5py.File(filename, 'r')
+    data = pd.read_hdf(filename, 'table')
+    print(h5f)
+    if split:
+        data_train = h5f['data_train'][:]
+    else:
+        data_train = None
+    data_test = h5f['data_test'][:]
+    charset =  h5f['charset'][:]
+    h5f.close()
+    if split:
+        return (data_train, data_test, charset)
+    else:
+        return (data_test, charset)
+
+
+
 if __name__ == '__main__':
+	a,b,c=load_dataset('/home/ishan/Desktop/Chem_AI/keras-molecules-master/data/smiles_50k.h5')
+	print("Data Train",a.shape)
+	print("Data Test ",b.shape)
+	print("Charset",c.shape)
+	print(SSSS)
+
 	data = pd.read_csv('/home/ishan/Desktop/Chem_AI/MolPMoFiT/data/QSAR/bbbp.csv')
 	vocab,inv_dict = build_vocab(data)
 	print("Vocab",vocab)

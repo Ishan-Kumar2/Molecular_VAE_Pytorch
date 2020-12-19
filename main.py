@@ -7,12 +7,14 @@ import torch
 import torch.optim as optim
 import argparse
 import random
+
+
 NUM_EPOCHS = 1
 BATCH_SIZE = 60
 LATENT_DIM = 292
 RANDOM_SEED = 42
 LR = 0.0001
-
+DYN_LR = True
 
 def get_arguments():
     parser = argparse.ArgumentParser(description='Molecular VAE network')
@@ -39,11 +41,12 @@ def main():
 	data = pd.read_csv(args.data)
 
 	smiles = data['smiles']
-	labels = np.array(data['p_np'])
+	#labels = np.array(data['p_np'])
+	labels = np.zeros((len(smiles),1))
 	print("Example Smiles",smiles[0:10])
 
 	##Building the Vocab from DeepChem's Regex
-	vocab,inv_dict = build_vocab(data)
+	vocab, inv_dict = build_vocab(data)
 	vocab_size = len(vocab)
 	
 	##Converting to One Hot Vectors
@@ -51,8 +54,8 @@ def main():
 	print("Input Data Shape",data.shape)
 	
 	##Checking ratio for Classification Datasets
-	print("Ratio of Classes")
-	get_ratio_classes(labels)
+	#print("Ratio of Classes")
+	#get_ratio_classes(labels)
 
 	##To oversample datasets if dataset is imbalanced
 	oversample = False
@@ -90,9 +93,13 @@ def main():
 	#if os.path.isfile(args.model):
 	#    model.load(charset, args.model, latent_rep_size = args.latent_dim)
 
-	criterion = nn.MSELoss()
+	#criterion = nn.MSELoss()
 	optimizer = optim.Adam(model.parameters(), lr = args.lr)
-
+	if DYN_LR:
+		scheduler = ReduceLROnPlateau(optimizer, 'min', 
+									factor = 0.2, 
+									patience = 3,
+									min_lr = 0.0001)
 
 	dataloader = torch.utils.data.DataLoader(X_train, 
 											batch_size=args.batch_size,
@@ -125,6 +132,11 @@ def main():
 		print("Train Loss -- {:.3f}".format(epoch_loss/X_train.shape[0]))
 		###Add 1 Image per Epoch for Visualisation
 		data_point_sampled = random.randint(0,args.batch_size)
+
+		print("Input -- "onehot_to_smiles(inputs[data_point_sampled], inv_dict))
+		print("Output -- "onehot_to_smiles(model(inputs[data_point_sampled:data_point_sampled+1]), inv_dict))
+				
+
 		add_img(inputs[data_point_sampled], inv_dict, "Original_"+str(epoch))
 		add_img(model(inputs[data_point_sampled:data_point_sampled+1]), inv_dict, "Recon_"+str(epoch))
 
@@ -140,6 +152,8 @@ def main():
 			loss = F.binary_cross_entropy(input_recon, inputs, size_average=False) + latent_loss_val
 			epoch_loss_val += loss.item()
 		print("Validation Loss -- {:.3f}".format(epoch_loss_val/X_test.shape[0]))
+
+		scheduler.step(epoch_loss_val)
 		###Add 1 Image per Epoch for Visualisation
 		#data_point_sampled = random.randint(0,args.batch_size)
 		#add_img(inputs[data_point_sampled], inv_dict, "Original_"+str(epoch))
