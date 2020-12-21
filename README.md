@@ -37,7 +37,7 @@ To Run a VAE with Fully Connected layers in both Encoder Decoder\
 ## Results
 
 The Train and Validation Losses where tracked for run of 100 epochs 
-![Loss graphs](/Sample_imgs/graph_loss.png)
+![Loss graphs](/Sample_imgs/graph_loss_200.png)
 
 ### Sample Outputs
 
