@@ -4,24 +4,26 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import functools
-from rdkit.Chem.Descriptors import MolWt
-import imblearn
-from imblearn.over_sampling import RandomOverSampler
+#from rdkit.Chem.Descriptors import MolWt
+#import imblearn
+#from imblearn.over_sampling import RandomOverSampler
 from sklearn.model_selection import train_test_split
 
 from matplotlib import colors
-from rdkit.Chem import Draw
-from rdkit.Chem.Draw import MolToImage
-import rdkit
-import rdkit.Chem as Chem
+#from rdkit.Chem import Draw
+#from rdkit.Chem.Draw import MolToImage
+#import rdkit
+#import rdkit.Chem as Chem
 from PIL import Image  
 import PIL 
-
+import re
 # check version number
 #import imblearn
 #from imblearn.over_sampling import RandomOverSampler
 #oversample = RandomOverSampler(sampling_strategy='minority')
 
+
+SMILES_COL_NAME = 'SMILES'
 
 
 SMI_REGEX_PATTERN = r"""(\[[^\]]+]|Br?|Cl?|N|O|S|P|F|I|b|c|n|o|s|p|\(|\)|\.|=|#|-|\+|\\|\/|:|~|@|\?|>>?|\*|\$|\%[0-9]{2}|[0-9])"""
@@ -31,11 +33,29 @@ def tokenizer(smiles_string):
 	tokens = [token for token in regex.findall(smiles_string)]
 	return tokens
 
+def atomwise_tokenizer(smi, exclusive_tokens = None):
+    """
+    Tokenize a SMILES molecule at atom-level:
+        (1) 'Br' and 'Cl' are two-character tokens
+        (2) Symbols with bracket are considered as tokens
+    exclusive_tokens: A list of specifical symbols with bracket you want to keep. e.g., ['[C@@H]', '[nH]'].
+    Other symbols with bracket will be replaced by '[UNK]'. default is `None`.
+    """
+    
+    pattern =  "(\[[^\]]+]|Br?|Cl?|N|O|S|P|F|I|b|c|n|o|s|p|\(|\)|\.|=|#|-|\+|\\\\|\/|:|~|@|\?|>|\*|\$|\%[0-9]{2}|[0-9])"
+    regex = re.compile(pattern)
+    tokens = [token for token in regex.findall(smi)]
 
+    if exclusive_tokens:
+        for i, tok in enumerate(tokens):
+            if tok.startswith('['):
+                if tok not in exclusive_tokens:
+                    tokens[i] = '[UNK]'
+    return tokens
 
 def build_vocab(data):
 	vocab_ = set()
-	smiles = list(data['smiles'])
+	smiles = list(data[SMILES_COL_NAME])
 
 	for ex in smiles:
 		for letter in tokenizer(ex):
@@ -43,6 +63,18 @@ def build_vocab(data):
 	
 	vocab={}
 	vocab['<PAD>'] = 0
+	vocab['<UNK>'] = 1
+	for i,letter in enumerate(vocab_):
+		vocab[letter]=i+2
+	inv_dict= {num: char for char, num in vocab.items()}
+	inv_dict[0] = ''
+	return vocab, inv_dict
+
+def custom_vocab():
+	vocab_ = {'[c-]', '[SeH]', '[N]', '[C@@]', '[Te]', '[OH+]', 'n', '[AsH]', '[B]', 'b', '[S@@]', 'o', ')', '[NH+]', '[SH]', 'O', 'I', '[C@]', '-', '[As+]', '[Cl+2]', '[P+]', '[o+]', '[C]', '[C@H]', '[CH2]', '\\', 'P', '[O-]', '[NH-]', '[S@@+]', '[te]', '[s+]', 's', '[B-]', 'B', 'F', '=', '[te+]', '[H]', '[C@@H]', '[Na]', '[Si]', '[CH2-]', '[S@+]', 'C', '[se+]', '[cH-]', '6', 'N', '[IH2]', '[As]', '[Si@]', '[BH3-]', '[Se]', 'Br', '[C+]', '[I+3]', '[b-]', '[P@+]', '[SH2]', '[I+2]', '%11', '[Ag-3]', '[O]', '9', 'c', '[N-]', '[BH-]', '4', '[N@+]', '[SiH]', '[Cl+3]', '#', '(', '[O+]', '[S-]', '[Br+2]', '[nH]', '[N+]', '[n-]', '3', '[Se+]', '[P@@]', '[Zn]', '2', '[NH2+]', '%10', '[SiH2]', '[nH+]', '[Si@@]', '[P@@+]', '/', '1', '[c+]', '[S@]', '[S+]', '[SH+]', '[B@@-]', '8', '[B@-]', '[C-]', '7', '[P@]', '[se]', 'S', '[n+]', '[PH]', '[I+]', '5', 'p', '[BH2-]', '[N@@+]', '[CH]', 'Cl'}
+	vocab={}
+	vocab['<PAD>'] = 0
+	vocab['<UNK>'] = 1
 	for i,letter in enumerate(vocab_):
 		vocab[letter]=i+1
 	inv_dict= {num: char for char, num in vocab.items()}
@@ -52,11 +84,15 @@ def build_vocab(data):
 def make_one_hot(data,vocab,max_len=120):
 	data_one_hot=np.zeros((len(data),max_len,len(vocab)))
 	for i, smiles in enumerate(data):
-		for j,letter in enumerate(tokenizer(smiles)):
-			if j == 120:
-				break
-			data_one_hot[i,j,vocab[letter]] = 1
-			
+		
+		smiles = tokenizer(smiles)
+		smiles = smiles[:120] +['<PAD>']*(max_len-len(smiles))
+
+		for j,letter in enumerate(smiles):
+			if letter in vocab.keys():
+				data_one_hot[i,j,vocab[letter]] = 1
+			else:
+				data_one_hot[i,j,vocab['<UNK>']] = 1
 	return data_one_hot
 
 
@@ -95,7 +131,12 @@ def get_image(mol, atomset, name):
 	return img
 
 def onehot_to_smiles(onehot, inv_vocab):
-	return "".join(map(lambda x: inv_vocab[x], np.where(onehot == 1)[1]))
+	#print(np.where(onehot == 1))
+	#return "".join(map(lambda x: inv_vocab[x], np.where(onehot == 1)[1]))
+	#print(onehot,onehot.shape)
+	#print(onehot.argmax(axis=2)[0])
+	return "".join(inv_vocab[let.item()] for let in onehot.argmax(axis=2)[0])
+	
 
 
 def get_mol(smiles):
@@ -132,30 +173,26 @@ def load_dataset(filename, split = True):
 
 if __name__ == '__main__':
 	#a,b,c=load_dataset('/home/ishan/Desktop/Chem_AI/keras-molecules-master/data/smiles_50k.h5')
-	dat = pd.read_csv('./smiles_chembl.csv')
-	print(len(dat['SMILES']))
 
-	print(SSS)
+	dat = pd.read_csv('./data/smiles_chembl.csv')
+	dat = dat.tail(50000)
+	print(dat.head(10))
 	
-	
 
-	print(SSSS)
-	print("Data Train",a.shape)
-	print("Data Test ",b.shape)
-	print("Charset",c.shape)
-	print(SSSS)
 
-	data = pd.read_csv('/home/ishan/Desktop/Chem_AI/MolPMoFiT/data/QSAR/bbbp.csv')
-	vocab,inv_dict = build_vocab(data)
+
+	vocab,inv_dict = build_vocab(dat)
 	print("Vocab",vocab)
 	print("Vocab Size",len(vocab))
 
-	data_one_hot = make_one_hot(data['smiles'],vocab)
-
+	vocab_2, inv_dict_2 = custom_vocab()
+	print("Len of Custom Vocab",len(vocab_2))
+	data_one_hot = make_one_hot(dat[SMILES_COL_NAME],vocab)
+	print(data_one_hot.shape)
 	####Checking onehot_to_smiles
-	print("Original",data['smiles'][5])
+	print("Original",data[SMILES_COL_NAME][5])
 	print("Recon",onehot_to_smiles(data_one_hot[5], inv_dict))
-	print(data['smiles'][5] == onehot_to_smiles(data_one_hot[5], inv_dict) )
+	print(data[SMILES_COL_NAME][5] == onehot_to_smiles(data_one_hot[5], inv_dict) )
 	#####
 
 	add_img(data_one_hot[5], inv_dict, 'checking')
