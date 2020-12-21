@@ -68,14 +68,14 @@ class VAE(nn.Module):
 
 ####################################################################################################
 class Conv_Encoder(nn.Module):
-	def __init__(self):
+	def __init__(self, vocab_len):
 		super(Conv_Encoder,self).__init__()
 
 		self.conv_1 = nn.Conv1d(120, 9, kernel_size=9)
 		self.conv_2 = nn.Conv1d(9, 9, kernel_size=9)
 		self.conv_3 = nn.Conv1d(9, 10, kernel_size=11)
 
-		self.fc_1 = nn.Linear(450,435)
+		self.fc_1 = nn.Linear(10*(vocab_len-26),435)
 		self.relu = nn.ReLU()
 
 	def forward(self, x):
@@ -94,19 +94,19 @@ class GRU_Decoder(nn.Module):
 		self.gru = nn.GRU(292, 501, 3, batch_first=True)
 		self.fc_2 = nn.Linear(501, vocab_size)
 		self.relu = nn.ReLU()
-
+		self.softmax = nn.Softmax()
 	def forward(self, z):
 		batch_size = z.shape[0]
 		z = self.relu(self.fc_1(z))
 		z = z.unsqueeze(1).repeat(1, 120, 1)
 		z_out, hidden = self.gru(z)
-		z_out = z_out.reshape(-1, z_out.shape[-1])
+		z_out = z_out.contiguous().reshape(-1, z_out.shape[-1])
 		x_recon = F.softmax(self.fc_2(z_out), dim=1)
-		x_recon = x_recon.reshape(batch_size, -1, x_recon.shape[-1])
+		x_recon = x_recon.contiguous().reshape(batch_size, -1, x_recon.shape[-1])
 		return x_recon
 
 class Molecule_VAE(nn.Module):
-	def __init__(self,encoder,decoder):
+	def __init__(self,encoder,decoder,device):
 		super(Molecule_VAE,self).__init__()
 		self.encoder = encoder
 		self.decoder = decoder
@@ -114,6 +114,8 @@ class Molecule_VAE(nn.Module):
 
 		#self.hidden_dim_2 = self.encoder.hidden_dim_2
 		#self.hidden_dim = self.encoder.hidden_dim
+		self.relu = nn.ReLU()
+		self.device = device
 
 		self._enc_mu = nn.Linear(435,292)
 		self._enc_log_sigma = nn.Linear(435,292)
@@ -123,15 +125,15 @@ class Molecule_VAE(nn.Module):
 		Return the latent normal sample z ~ N(mu, sigma^2)
 		"""
 		mu = self._enc_mu(h_enc)
-		log_sigma = self._enc_log_sigma(h_enc)
+		log_sigma = self.relu(self._enc_log_sigma(h_enc))
 		sigma = torch.exp(log_sigma)
 
-		std_z = torch.randn(sigma.size()).float()
+		eps = 1e-2 * torch.randn_like(sigma).float().to(self.device)
 		
 		self.z_mean = mu
 		self.z_sigma = sigma
 
-		return mu + sigma * std_z  # Reparameterization trick
+		return mu + sigma * eps  # Reparameterization trick
 
 	def forward(self, state):
 		h_enc = self.encoder(state)
@@ -149,7 +151,8 @@ class Molecule_VAE(nn.Module):
 def latent_loss(z_mean, z_stddev):
 	mean_sq = z_mean * z_mean
 	stddev_sq = z_stddev * z_stddev
-	return 0.5 * torch.mean(mean_sq + stddev_sq - torch.log(stddev_sq) - 1)
+	#0.5 * torch.mean(mean_sq + stddev_sq - torch.log(stddev_sq) - 1)
+	return 0.5 * torch.mean(mean_sq + z_stddev - torch.log(stddev_sq) - 1)
 
 
 if __name__ == '__main__':
@@ -179,10 +182,10 @@ if __name__ == '__main__':
 	print("#######################################################################################")
 	print("Checking Molecule VAE")
 
-	enc = Conv_Encoder()
+	enc = Conv_Encoder(vocab_size)
 	dec = GRU_Decoder(vocab_size)
 
-	model = Molecule_VAE(enc, dec)
+	model = Molecule_VAE(enc, dec, device)
 
 	ex_input = torch.randn(1,120,71)
 	model.get_num_params()
