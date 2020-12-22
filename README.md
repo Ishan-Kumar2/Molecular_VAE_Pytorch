@@ -48,20 +48,20 @@ The Train and Validation Losses where tracked for Training and Validation epochs
 
 ### Sample Outputs
 
-*Input* - CC(NC(=O)C)OC(=O)c1ccc(cc1)[N+](=O)[O-] 
+*Input* - CC(NC(=O)C)OC(=O)c1ccc(cc1)[N+](=O)[O-] \
 *Output* - CC(C))CCCCCCCCOOOcc1cccccc1[N+](=O)[O-] 
 
-*Input* - COC(=O)[C@H](CCCN=C(N)N)NC(=O)[C@H](Cc1c[nH]c2ccccc12)NC(=O)C3CCCCC3 
+*Input* - COC(=O)[C@H](CCCN=C(N)N)NC(=O)[C@H](Cc1c[nH]c2ccccc12)NC(=O)C3CCCCC3 \
 *Output* - CC(=))CCCCCCCCCCCCCCCOO)))cccccccccccccccc)CCCCCCCCCCCCC3 
 
-*Input* - c1ccsc1
-Output -  c1cccc1
+*Input* - c1ccsc1 \
+Output -  c1cccc1 
 
-*Input* - Cl.NCc1cc(Cl)cc(Cl)c1
-*Output* -Cl.CCc1cc((Cl)ClClcc1
+*Input* - Cl.NCc1cc(Cl)cc(Cl)c1 \
+*Output* -Cl.CCc1cc((Cl)ClClcc1 
 
-*Input* - CC(C)CCOc1ccc(Cl)cc1C(=C)n2cncn2
-*Output*- CC(C)CO)c1cccccccccccccccnCCnn3
+*Input* - CC(C)CCOc1ccc(Cl)cc1C(=C)n2cncn2 \
+*Output*- CC(C)CO)c1cccccccccccccccnCCnn3 
 
-*Input*- CCCCCCCCCCc1cccc(O)c1C(=O)O
-*Output*-CCCCCCCCCCc1ccccccc)CC(O))O
+*Input*- CCCCCCCCCCc1cccc(O)c1C(=O)O \
+*Output*-CCCCCCCCCCc1ccccccc)CC(O))O 
