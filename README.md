@@ -38,12 +38,13 @@ To Run a VAE with Fully Connected layers in both Encoder Decoder\
 
 The Train and Validation Losses where tracked for Training and Validation epochs
 
-**Using Latent Dim = 292 (As in the Paper)** 
+**Using Latent Dim = 292 (As in the Paper)** \
 ![Loss graphs](/Sample_imgs/graph_loss_200.png) 
+\
+**Using Latent Dim = 392** \
+![Loss graphs](/Sample_imgs/Graph_loss_392.png) 
 
-**Using Latent Dim = 392** 
-![Loss graphs](/Sample_imgs/Graph_loss_392.png)
-
+\
 Although the Training Loss Reduces more in the 392 Case the Validation Loss remains almost equal which means it starts to overfit after 292.
 
 ### Sample Outputs
