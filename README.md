@@ -27,7 +27,7 @@ This will prepare 2 CSV files `/save/path_train.csv` and `/save/path_val.csv` bo
 To train the network use the `main.py` file
 
 To Run the Papers Model (Conv Encoder and GRU Decoder)\
-`python main.py ./data/chembl_500k_train ./data/chembl_500k_train ./Save_Models/ --epochs 100 --model_type mol_vae --latent_dim 290 --batch_size 512 --lr 0.0001`\
+`python main.py ./data/chembl_500k_train ./data/chembl_500k_val ./Save_Models/ --epochs 100 --model_type mol_vae --latent_dim 290 --batch_size 512 --lr 0.0001`\
 Latent Dim has default value 292 which is the value used in the original Paper
 
 To Run a VAE with Fully Connected layers in both Encoder Decoder\
@@ -36,13 +36,32 @@ To Run a VAE with Fully Connected layers in both Encoder Decoder\
 
 ## Results
 
-The Train and Validation Losses where tracked for run of 100 epochs 
+The Train and Validation Losses where tracked for Training and Validation epochs
+
+** Using Latent Dim = 292 (As in the Paper) ** 
 ![Loss graphs](/Sample_imgs/graph_loss_200.png)
+
+
+** Using Latent Dim = 392 ** 
+![Loss graphs](/Sample_imgs/graph_loss_392.png)
+
 
 ### Sample Outputs
 
-*Input* - CC(NC(=O)C)OC(=O)c1ccc(cc1)[N+](=O)[O-] \
-*Output* - CC(C))CCCCCCCCOOOcc1cccccc1[N+](=O)[O-] \
+*Input* - CC(NC(=O)C)OC(=O)c1ccc(cc1)[N+](=O)[O-] 
+*Output* - CC(C))CCCCCCCCOOOcc1cccccc1[N+](=O)[O-] 
 
-*Input* - COC(=O)[C@H](CCCN=C(N)N)NC(=O)[C@H](Cc1c[nH]c2ccccc12)NC(=O)C3CCCCC3 \
-*Output* - CC(=))CCCCCCCCCCCCCCCOO)))cccccccccccccccc)CCCCCCCCCCCCC3 \
+*Input* - COC(=O)[C@H](CCCN=C(N)N)NC(=O)[C@H](Cc1c[nH]c2ccccc12)NC(=O)C3CCCCC3 
+*Output* - CC(=))CCCCCCCCCCCCCCCOO)))cccccccccccccccc)CCCCCCCCCCCCC3 
+
+*Input* - c1ccsc1
+Output -  c1cccc1
+
+*Input* - Cl.NCc1cc(Cl)cc(Cl)c1
+*Output* -Cl.CCc1cc((Cl)ClClcc1
+
+*Input* - CC(C)CCOc1ccc(Cl)cc1C(=C)n2cncn2
+*Output*- CC(C)CO)c1cccccccccccccccnCCnn3
+
+*Input*- CCCCCCCCCCc1cccc(O)c1C(=O)O
+*Output*-CCCCCCCCCCc1ccccccc)CC(O))O
