@@ -43,7 +43,7 @@ The Train and Validation Losses where tracked for Training and Validation epochs
 
 
 ** Using Latent Dim = 392 ** 
-![Loss graphs](/Sample_imgs/graph_loss_392.png)
+![Loss graphs](/Sample_imgs/Graph_loss_392.png)
 
 
 ### Sample Outputs
