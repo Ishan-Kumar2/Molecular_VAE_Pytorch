@@ -88,25 +88,30 @@ class Conv_Encoder(nn.Module):
 		return x
 	
 class GRU_Decoder(nn.Module):
-	def __init__(self, vocab_size):
+	def __init__(self, vocab_size,latent_dim):
 		super(GRU_Decoder,self).__init__()
-		self.fc_1 = nn.Linear(292, 292)
-		self.gru = nn.GRU(292, 501, 3, batch_first=True)
+		#self.fc_1 = nn.Linear(292, 292)
+		self.gru = nn.GRU(latent_dim, 501, 3, batch_first=True)
 		self.fc_2 = nn.Linear(501, vocab_size)
 		self.relu = nn.ReLU()
 		self.softmax = nn.Softmax()
-	def forward(self, z):
+	
+	def forward(self, z, hidden):
 		batch_size = z.shape[0]
-		z = self.relu(self.fc_1(z))
-		z = z.unsqueeze(1).repeat(1, 120, 1)
-		z_out, hidden = self.gru(z)
+		#z = self.relu(self.fc_1(z))
+
+		z = self.embed(z.long()).unsqueeze(1)
+		
+		z_out, hidden = self.gru(z, hidden)
 		z_out = z_out.contiguous().reshape(-1, z_out.shape[-1])
-		x_recon = F.softmax(self.fc_2(z_out), dim=1)
+		#x_recon = F.softmax(self.fc_2(z_out), dim=1)
+		x_recon = self.fc_1(z_out)
 		x_recon = x_recon.contiguous().reshape(batch_size, -1, x_recon.shape[-1])
-		return x_recon
+		
+		return x_recon, hidden
 
 class Molecule_VAE(nn.Module):
-	def __init__(self,encoder,decoder,device):
+	def __init__(self,encoder,decoder,device,latent_dim):
 		super(Molecule_VAE,self).__init__()
 		self.encoder = encoder
 		self.decoder = decoder
@@ -117,28 +122,63 @@ class Molecule_VAE(nn.Module):
 		self.relu = nn.ReLU()
 		self.device = device
 
-		self._enc_mu = nn.Linear(435,292)
-		self._enc_log_sigma = nn.Linear(435,292)
+		self._enc_mu = nn.Linear(435,latent_dim)
+		self._enc_log_sigma = nn.Linear(435,latent_dim)
 		
 	def _sample_latent(self, h_enc):
 		"""
 		Return the latent normal sample z ~ N(mu, sigma^2)
 		"""
 		mu = self._enc_mu(h_enc)
-		log_sigma = self.relu(self._enc_log_sigma(h_enc))
-		sigma = torch.exp(log_sigma)
+		log_sigma = self._enc_log_sigma(h_enc)
+		sigma = torch.exp(0.5*log_sigma)
 
-		eps = 1e-2 * torch.randn_like(sigma).float().to(self.device)
+		eps = torch.randn_like(sigma).float().to(self.device)
 		
 		self.z_mean = mu
 		self.z_sigma = sigma
 
 		return mu + sigma * eps  # Reparameterization trick
 
-	def forward(self, state):
-		h_enc = self.encoder(state)
+	def forward_decoder(self, Z, x):
+		trg_len = x.shape[1]
+		batch_size = Z.shape[0]
+
+		outputs = torch.zeros(batch_size,trg_len,self.encoder.vocab_len).to(self.device)
+		outputs[:,0,2] = 1     #Intial Output is <STR> Token
+
+		hidden = Z.unsqueeze(0).repeat(self.decoder.num_layers,1,1)
+
+		input = torch.ones(batch_size).to(self.device)*2
+		#input = x[:,0,:].argmax(1).to(self.device)
+		#print("Initial Input",input)
+
+		#print("HIDDEN AND INPUT",hidden.shape,input.shape)
+		for t in range(1,trg_len):
+			#print(t)
+			output,hidden = self.decoder(input,hidden)
+			#hidden [1(seq_len), batch_size, dec_hidden]
+			#output [1(seq_len), batch_size, vocab_size(dec)]
+
+			output = output.squeeze(0)
+			outputs[:,t:t+1,:] = output
+
+			top1 = output.argmax(2)
+
+			if random.random()<self.teacher_forcing_ratio:
+			    input = x[:,t,:].argmax(1)
+			    #print("Teacher OFrces",input.shape)
+			else:
+				input = top1.squeeze(1).detach()  #If this detach is left out the computational graph is retained.
+				#print("normal",input.shape)
+			#print("NOW INPUT SHAPE",input.shape)		
+		return outputs
+
+	def forward(self, x):
+		self.h_enc = self.encoder(x)
 		z = self._sample_latent(h_enc)
-		recon_x = self.decoder(z)
+	
+		recon_x = self.forward_decoder(z,x)
 		return recon_x
 
 	def get_num_params(self):
@@ -152,7 +192,10 @@ def latent_loss(z_mean, z_stddev):
 	mean_sq = z_mean * z_mean
 	stddev_sq = z_stddev * z_stddev
 	#0.5 * torch.mean(mean_sq + stddev_sq - torch.log(stddev_sq) - 1)
-	return 0.5 * torch.mean(mean_sq + z_stddev - torch.log(stddev_sq) - 1)
+	#0.5 * torch.mean(mean_sq + z_stddev - torch.log(z_stddev) - 1)
+	return -0.5 * torch.mean(torch.log(z_stddev) + 1 - mean_sq - z_stddev)
+
+           
 
 
 if __name__ == '__main__':
