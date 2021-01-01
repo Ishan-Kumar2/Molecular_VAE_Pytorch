@@ -91,8 +91,8 @@ def main():
     if use_vae:
         ##Using Molecular VAE Arch as in the Paper with Conv Encoder and GRU Decoder
         enc = Conv_Encoder(vocab_size).to(device)
-        dec = GRU_Decoder(vocab_size).to(device)
-        model = Molecule_VAE(enc, dec,device).to(device)
+        dec = GRU_Decoder(vocab_size,latent_dim).to(device)
+        model = Molecule_VAE(enc, dec,device,latent_dim).to(device)
         model.get_num_params()
     else:
         #Using FC layers for both Encoder and Decoder
@@ -113,22 +113,22 @@ def main():
     optimizer = optim.Adam(model.parameters(), lr = args.lr)
     if DYN_LR:
         scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', 
-                                    factor = 0.2, 
+                                    factor = 0.8, 
                                     patience = 3,
                                     min_lr = 0.0001)
 
     dataloader = torch.utils.data.DataLoader(X_train, 
                                             batch_size=args.batch_size,
-                                            shuffle=False, 
-                                            num_workers=2,
+                                            shuffle=True, 
+                                            num_workers=6,
                                             drop_last = True)
     val_dataloader = torch.utils.data.DataLoader(X_test, 
                                             batch_size=args.batch_size,
-                                            shuffle=False, 
-                                            num_workers=2,
+                                            shuffle=True, 
+                                            num_workers=6,
                                             drop_last = True)
 
-    
+    best_epoch_loss_val = 100000
     x_train_data_per_epoch = X_train.shape[0] - X_train.shape[0]%args.batch_size
     x_val_data_per_epoch = X_test.shape[0] - X_test.shape[0]%args.batch_size
     print("Div Quantities",x_train_data_per_epoch,x_val_data_per_epoch)
@@ -190,10 +190,35 @@ def main():
 
 
 
-        checkpoint = {'model': model.state_dict()}
-        torch.save(checkpoint, args.save_loc+'/'+str(epoch)+'checkpoint.pth')
+        checkpoint = {'model': model.state_dict(),
+                    'dict':vocab,
+                    'inv_dict':inv_dict,
+                    }
+
+        if epoch_loss_val < best_epoch_loss_val:
+            torch.save(checkpoint, args.save_loc+'/'+str(epoch)+'checkpoint.pth')
+        best_epoch_loss_val = min(epoch_loss_val, best_epoch_loss_val)
+    #evaluate(model, X_train, vocab, inv_dict)
+
+
+def evaluate(model, X_train, vocab, inv_dict):
+    print("IN EVALUATION PHASE")
+    pretrained = torch.load('./Save_Models/189checkpoint.pth', map_location=lambda storage, loc: storage)
+    #torch.load('./Save_Models/189checkpoint.pth',map_location=torch.device('cpu'))
+    dataloader = torch.utils.data.DataLoader(X_train, 
+                                            batch_size=1,
+                                            shuffle=False, 
+                                            num_workers=2,
+                                            drop_last = True)
+    for i, data in enumerate(dataloader):
+        inputs = data.float().to(device)
+        input_recon = model(inputs)        
+        print(i)
+        print("Input -- ",onehot_to_smiles(inputs[0].reshape(1, 120, len(vocab)).cpu().detach(), inv_dict))
+        print("Output -- ",onehot_to_smiles(input_recon[0].reshape(1, 120, len(vocab)).cpu().detach(), inv_dict))
+        print()
 
 
 if __name__ == '__main__':
+    
     main()
-
