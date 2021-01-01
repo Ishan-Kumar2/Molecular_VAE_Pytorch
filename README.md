@@ -39,30 +39,31 @@ To Run a VAE with Fully Connected layers in both Encoder Decoder\
 The Train and Validation Losses where tracked for Training and Validation epochs
 
 **Using Latent Dim = 292 (As in the Paper)** \
-![Loss graphs](/Sample_imgs/graph_loss_200.png) 
+![Loss graphs](/Sample_imgs/graph_loss_1.png) 
+
+It starts to overfit the train set after 20 Epochs, so the saved weights at 20 should be used for best results
 \
-**Using Latent Dim = 392** \
-![Loss graphs](/Sample_imgs/Graph_loss_392.png) 
+
 
 \
 Although the Training Loss Reduces more in the 392 Case the Validation Loss remains almost equal which means it starts to overfit after 292.
 
 ### Sample Outputs
 
-*Input* - CC(NC(=O)C)OC(=O)c1ccc(cc1)[N+](=O)[O-] \
-*Output* - CC(C))CCCCCCCCOOOcc1cccccc1[N+](=O)[O-] 
+*Input* - \CC(C)(C)C(=O)OCN1OC(=O)c2ccccc12 \
+*Output* - \CC(C)CC)C(=O)OC11CC(=O)C2ccccc12
 
-*Input* - COC(=O)[C@H](CCCN=C(N)N)NC(=O)[C@H](Cc1c[nH]c2ccccc12)NC(=O)C3CCCCC3 \
-*Output* - CC(=))CCCCCCCCCCCCCCCOO)))cccccccccccccccc)CCCCCCCCCCCCC3 
+*Input* - \CN\C(=N\S(=O)(=O)c1cc(CCNC(=O)c2cc(Cl)ccc2OC)ccc1OCCOC)\S \
+*Output* - \CN\C(=N/S)=O)(=O)c1ccccCNC(=O)c2cc(Cl)ccc2OC)ccc1OCC(C(\C 
 
-*Input* - c1ccsc1 \
-Output -  c1cccc1 
+*Input* - \O[C@@H]1[C@@H](O)[C@@H](Cc2ccccc2)N(CCCCCNC(=O)c3ccccc3)C(=O)N(CCCCCNC(=O)c4ccccc4)[C@@H]1Cc5ccccc5 \
+Output -  \O[C@@H]1[C@@H](O)[C@@H](Cc2ccccc2)N(CcCCCN3(=O)c3ccccc3)C(=O)N4Cc44NC4C=O)c4cccc54)c1Cc5ccccc5
 
-*Input* - Cl.NCc1cc(Cl)cc(Cl)c1 \
-*Output* -Cl.CCc1cc((Cl)ClClcc1 
+*Input* - \C\C(=N/OC(c1ccccc1)c2ccccc2)\C[C@H]3CCc4c(C3)cccc4OCC(=O)O \
+*Output* - \C\C(=N/OC(c1ccccc1)\2ccccc2)\C33CNC4ccc))ccc44OCC=O)O
 
-*Input* - CC(C)CCOc1ccc(Cl)cc1C(=C)n2cncn2 \
-*Output*- CC(C)CO)c1cccccccccccccccnCCnn3 
+*Input* - \O[C@@H](CNCCc1ccc(NS(=O)(=O)c2ccc(cc2)c3coc(n3)c4ccc(cc4)C(F)(F)F)cc1)c5cccnc5 \
+*Output*- \O[C@@H](CNCCc1ccc(NS(=O)(=O)c2ccc(cc2)c3ncc(C3)C4cccccc4)C(F)(F)F)cc1)c5cccnc5 
 
-*Input*- CCCCCCCCCCc1cccc(O)c1C(=O)O \
-*Output*-CCCCCCCCCCc1ccccccc)CC(O))O 
+*Input*- \CCCCCCCCCCc1cccc(O)c1C(=O)O \
+*Output*- \CCCCCCCCCCc1ccccccc)CC(O))O 
