@@ -1,20 +1,25 @@
 # A PyTorch implementation of Molecular VAE paper
 
-PyTorch implementation of the paper **"Automatic Chemical Design Using a Data-Driven Continuous Representation of Molecules"**\
+PyTorch implementation of the paper **"Automatic Chemical Design Using a Data-Driven Continuous Representation of Molecules" by Gómez-Bombarelli, et al.**\
 Link to Paper - [arXiv](https://arxiv.org/abs/1610.02415)
+<br />
+
+<div style="text-align:center"><img src="https://github.com/Ishan-Kumar2/Molecular_VAE_Pytorch/blob/master/Sample_imgs/cover_img.jpg" /></div>
+
+----
 
 ## Getting the Repo
-To clone the repo on your machine run - \
-`git clone https://github.com/Ishan-Kumar2/Molecular_VAE_Pytorch.git` \
+To clone the repo on your machine run -\
+`git clone https://github.com/Ishan-Kumar2/Molecular_VAE_Pytorch.git`\
 The Structure of the Repo is as follows -\
-`data_prep.py`- For Getting the Data in CSV format and splitting into specifed sized Train and Val \
-`main.py` - Running the model \
-`model.py` - Defines the Architecture of the Model \
-`utils.py` - Various useful functions for encoding and decoding the data \
+`data_prep.py`- For Getting the Data in CSV format and splitting into specifed sized Train and Val\
+`main.py` - Running the model\
+`model.py` - Defines the Architecture of the Model\
+`utils.py` - Various useful functions for encoding and decoding the data <br />
 
 
 ## Getting the Dataset
-For this work I have used the ChEMBL Dataset which can be found [here](https://www.ebi.ac.uk/chembl/) \
+For this work I have used the ChEMBL Dataset which can be found [here](https://www.ebi.ac.uk/chembl/)\
 \
 Since the whole dataset has over 16M datapoints, I have decided to use a subset of that data.
 To get the subset you can either use the train, val data present in ``/data``
@@ -22,6 +27,10 @@ or run the ``data_prep.py`` file as - \
 `python data_prep.py /path/to/downloaded_data col_name_smiles /save/path 50000` \
 \
 This will prepare 2 CSV files `/save/path_train.csv` and `/save/path_val.csv` both of length 50k and having randomly shuffled datapoints.
+
+Example of a Smiles string and corresponding Molecule
+
+
 
 ## Training the Network
 To train the network use the `main.py` file
@@ -41,11 +50,10 @@ The Train and Validation Losses where tracked for Training and Validation epochs
 **Using Latent Dim = 292 (As in the Paper)** \
 ![Loss graphs](/Sample_imgs/graph_loss_1.png) 
 
-It starts to overfit the train set after 20 Epochs, so the saved weights at 20 should be used for best results
-\
+It starts to overfit the train set after 20 Epochs, so the saved weights at 20 should be used for best results <br />
 
 
-\
+
 Although the Training Loss Reduces more in the 392 Case the Validation Loss remains almost equal which means it starts to overfit after 292.
 
 ### Sample Outputs
