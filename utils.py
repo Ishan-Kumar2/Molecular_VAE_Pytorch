@@ -34,13 +34,11 @@ def tokenizer(smiles_string):
 	return tokens
 
 def atomwise_tokenizer(smi, exclusive_tokens = None):
-    """
-    Tokenize a SMILES molecule at atom-level:
+    """Tokenizes a SMILES molecule at atom-level:
         (1) 'Br' and 'Cl' are two-character tokens
         (2) Symbols with bracket are considered as tokens
     exclusive_tokens: A list of specifical symbols with bracket you want to keep. e.g., ['[C@@H]', '[nH]'].
-    Other symbols with bracket will be replaced by '[UNK]'. default is `None`.
-    """
+    Other symbols with bracket will be replaced by '[UNK]'. default is `None`."""
     
     pattern =  "(\[[^\]]+]|Br?|Cl?|N|O|S|P|F|I|b|c|n|o|s|p|\(|\)|\.|=|#|-|\+|\\\\|\/|:|~|@|\?|>|\*|\$|\%[0-9]{2}|[0-9])"
     regex = re.compile(pattern)
@@ -71,6 +69,7 @@ def build_vocab(data):
 	return vocab, inv_dict
 
 def custom_vocab():
+	"""Custom Vocab with certain commonly occuring molecules from DeepChem"""
 	vocab_ = {'[c-]', '[SeH]', '[N]', '[C@@]', '[Te]', '[OH+]', 'n', '[AsH]', '[B]', 'b', '[S@@]', 'o', ')', '[NH+]', '[SH]', 'O', 'I', '[C@]', '-', '[As+]', '[Cl+2]', '[P+]', '[o+]', '[C]', '[C@H]', '[CH2]', '\\', 'P', '[O-]', '[NH-]', '[S@@+]', '[te]', '[s+]', 's', '[B-]', 'B', 'F', '=', '[te+]', '[H]', '[C@@H]', '[Na]', '[Si]', '[CH2-]', '[S@+]', 'C', '[se+]', '[cH-]', '6', 'N', '[IH2]', '[As]', '[Si@]', '[BH3-]', '[Se]', 'Br', '[C+]', '[I+3]', '[b-]', '[P@+]', '[SH2]', '[I+2]', '%11', '[Ag-3]', '[O]', '9', 'c', '[N-]', '[BH-]', '4', '[N@+]', '[SiH]', '[Cl+3]', '#', '(', '[O+]', '[S-]', '[Br+2]', '[nH]', '[N+]', '[n-]', '3', '[Se+]', '[P@@]', '[Zn]', '2', '[NH2+]', '%10', '[SiH2]', '[nH+]', '[Si@@]', '[P@@+]', '/', '1', '[c+]', '[S@]', '[S+]', '[SH+]', '[B@@-]', '8', '[B@-]', '[C-]', '7', '[P@]', '[se]', 'S', '[n+]', '[PH]', '[I+]', '5', 'p', '[BH2-]', '[N@@+]', '[CH]', 'Cl'}
 	vocab={}
 	vocab['<PAD>'] = 0
@@ -82,6 +81,7 @@ def custom_vocab():
 	return vocab, inv_dict
 
 def make_one_hot(data,vocab,max_len=120):
+	"""Converts the Strings to onehot data"""
 	data_one_hot=np.zeros((len(data),max_len,len(vocab)))
 	for i, smiles in enumerate(data):
 		
@@ -97,11 +97,13 @@ def make_one_hot(data,vocab,max_len=120):
 
 
 def oversample(input,labels):
+	"""Oversamples the input if there is a imbalanced data for QSAR"""
 	oversample = RandomOverSampler(sampling_strategy='minority')
 	X_oversampled,y_oversampled = oversample.fit_resample(input,labels)
 	return X_oversampled,y_oversampled
 
 def get_ratio_classes(labels):
+	"""Returns the ratio of the labels in classification QSAR"""
 	print('Number of 1s in dataset -- {} Percentage -- {:.3f}%'.format(labels[labels==1].shape[0],
 															 labels[labels==1].shape[0]/len(labels)))
 
@@ -110,6 +112,7 @@ def get_ratio_classes(labels):
 
 
 def split_data(input,output,test_size=0.20):
+
 	X_train, X_test, y_train, y_test = train_test_split(input, output, 
 												  test_size=test_size, 
 												  stratify=output,
@@ -118,28 +121,25 @@ def split_data(input,output,test_size=0.20):
 	return X_train, X_test, y_train, y_test
 
 
-def get_image(mol, atomset, name):    
+def get_image(mol, atomset, name):
+	"""Save image of the SMILES for vis purposes"""    
 	hcolor = colors.to_rgb('green')
 	if atomset is not None:
 		#highlight the atoms set while drawing the whole molecule.
 		img = MolToImage(mol, size=(600, 600),fitImage=True, highlightAtoms=atomset,highlightColor=hcolor)
 	else:
 		img = MolToImage(mol, size=(400, 400),fitImage=True)
-
 	
 	img = img.save(name + ".jpg") 
 	return img
 
 def onehot_to_smiles(onehot, inv_vocab):
-	#print(np.where(onehot == 1))
-	#return "".join(map(lambda x: inv_vocab[x], np.where(onehot == 1)[1]))
-	#print(onehot,onehot.shape)
-	#print(onehot.argmax(axis=2)[0])
+	"""Converts Onehot output to smiles"""
 	return "".join(inv_vocab[let.item()] for let in onehot.argmax(axis=2)[0])
 	
 
-
 def get_mol(smiles):
+	"""Returns SMILES String in RDKit molecule format"""
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:
         return None
@@ -152,7 +152,6 @@ def add_img(onehot, inv_vocab, name):
 	mol = get_mol(smiles)
 	get_image(mol, {}, name)
 
-import h5py
 def load_dataset(filename, split = True):
     #h5f = h5py.File(filename, 'r')
     data = pd.read_hdf(filename, 'table')
@@ -170,10 +169,7 @@ def load_dataset(filename, split = True):
         return (data_test, charset)
 
 
-
 if __name__ == '__main__':
-	#a,b,c=load_dataset('/home/ishan/Desktop/Chem_AI/keras-molecules-master/data/smiles_50k.h5')
-
 	dat = pd.read_csv('./data/smiles_chembl.csv')
 	dat = dat.tail(50000)
 	print(dat.head(10))
@@ -191,7 +187,7 @@ if __name__ == '__main__':
 	print(data_one_hot.shape)
 	####Checking onehot_to_smiles
 	print("Original",data[SMILES_COL_NAME][5])
-	print("Recon",onehot_to_smiles(data_one_hot[5], inv_dict))
+	print("Reconstructed",onehot_to_smiles(data_one_hot[5], inv_dict))
 	print(data[SMILES_COL_NAME][5] == onehot_to_smiles(data_one_hot[5], inv_dict) )
 	#####
 
