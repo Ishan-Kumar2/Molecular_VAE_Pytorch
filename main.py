@@ -15,8 +15,7 @@ LATENT_DIM = 292
 RANDOM_SEED = 42
 LR = 0.0001
 DYN_LR = True
-
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
+EVAL_PATH = './Save_Models/189checkpoint.pth'
 
 
 def get_arguments():
@@ -38,10 +37,15 @@ def get_arguments():
     parser.add_argument('--lr', type=float, metavar='N', default=LR,
                         help='Learning Rate for training.')
 
+    parser.add_argument('--gpu', type=int, metavar='N', default=0,
+						help='which GPU to use')
+
     return parser.parse_args()
-#torch.set_printoptions(threshold=10_000)
+
 def main():
     args = get_arguments()
+
+    device = 'cuda:'+str(args.gpu) if torch.cuda.is_available() else 'cpu'
 
     data = pd.read_csv(args.data)
 
@@ -59,10 +63,6 @@ def main():
     data = make_one_hot(data[SMILES_COL_NAME],vocab)
     print("Input Data Shape",data.shape)
     
-    ##Checking ratio for Classification Datasets
-    #print("Ratio of Classes")
-    #get_ratio_classes(labels)
-
     data_val = pd.read_csv(args.val_data)
     smiles_val = data_val[SMILES_COL_NAME]
     labels_val = np.zeros((len(smiles),1))
@@ -72,7 +72,12 @@ def main():
     X_test = data_val
     y_train = labels 
     y_test = labels_val
-    ##To oversample datasets if dataset is imbalanced
+
+    ##Checking ratio for Classification Datasets
+    #print("Ratio of Classes")
+    #get_ratio_classes(labels)
+
+    ##To oversample datasets if dataset is imbalanced change to True
     oversample = False
     if oversample:
         print(data.shape,labels.shape)
@@ -122,6 +127,7 @@ def main():
                                             shuffle=True, 
                                             num_workers=6,
                                             drop_last = True)
+
     val_dataloader = torch.utils.data.DataLoader(X_test, 
                                             batch_size=args.batch_size,
                                             shuffle=True, 
@@ -137,7 +143,7 @@ def main():
     for epoch in range(args.epochs):
         epoch_loss = 0
         print("Epoch -- {}".format(epoch))
-        #data_points_done = 0
+        
         for i, data in enumerate(dataloader):
             
             inputs = data.float().to(device)
@@ -150,13 +156,11 @@ def main():
             loss.backward()
             optimizer.step()
             epoch_loss += loss.item()
-            #data_points_done += data.shape[0]
+            
 
         print("Train Loss -- {:.3f}".format(epoch_loss/x_train_data_per_epoch))
         ###Add 1 Image per Epoch for Visualisation
         data_point_sampled = random.randint(0,args.batch_size-1)
-
-        #print("INPUT ARGMAX",inputs[data_point_sampled].reshape(1, 120, len(vocab)))
 
         print("INPUT",inputs[data_point_sampled])
         print("OUTPUT",input_recon[data_point_sampled].reshape(1, 120, len(vocab)))
@@ -164,12 +168,6 @@ def main():
         print("Input -- ",onehot_to_smiles(inputs[data_point_sampled].reshape(1, 120, len(vocab)).cpu().detach(), inv_dict))
         print("Output -- ",onehot_to_smiles(input_recon[data_point_sampled].reshape(1, 120, len(vocab)).cpu().detach(), inv_dict))
         
-        #print("len",len(onehot_to_smiles(inputs[data_point_sampled].cpu().detach().numpy(), inv_dict)))       
-
-        #add_img(inputs[data_point_sampled], inv_dict, "Original_"+str(epoch))
-        #ladd_img(model(inputs[data_point_sampled:data_point_sampled+1]), inv_dict, "Recon_"+str(epoch))
-
-
         #####################Validation Phase
         epoch_loss_val = 0
         for i, data in enumerate(val_dataloader):
@@ -183,27 +181,28 @@ def main():
         print("Validation Loss -- {:.3f}".format(epoch_loss_val/x_val_data_per_epoch))
         print()
         scheduler.step(epoch_loss_val)
+        
         ###Add 1 Image per Epoch for Visualisation
         #data_point_sampled = random.randint(0,args.batch_size)
         #add_img(inputs[data_point_sampled], inv_dict, "Original_"+str(epoch))
         #add_img(model(inputs[data_point_sampled:data_point_sampled+1]), inv_dict, "Recon_"+str(epoch))
-
-
 
         checkpoint = {'model': model.state_dict(),
                     'dict':vocab,
                     'inv_dict':inv_dict,
                     }
 
-        if epoch_loss_val < best_epoch_loss_val:
-            torch.save(checkpoint, args.save_loc+'/'+str(epoch)+'checkpoint.pth')
+        #Saves when loss is lower than best validation loss till now and all models after 100 epochs
+       	if epoch_loss_recon_val < best_epoch_loss_val or epoch > 100:
+			torch.save(checkpoint, args.save_loc+'/'+str(epoch)+'checkpoint.pth')
+        #update best epoch loss
         best_epoch_loss_val = min(epoch_loss_val, best_epoch_loss_val)
     #evaluate(model, X_train, vocab, inv_dict)
 
 
 def evaluate(model, X_train, vocab, inv_dict):
     print("IN EVALUATION PHASE")
-    pretrained = torch.load('./Save_Models/189checkpoint.pth', map_location=lambda storage, loc: storage)
+    pretrained = torch.load(EVAL_PATH, map_location=lambda storage, loc: storage)
     #torch.load('./Save_Models/189checkpoint.pth',map_location=torch.device('cpu'))
     dataloader = torch.utils.data.DataLoader(X_train, 
                                             batch_size=1,
